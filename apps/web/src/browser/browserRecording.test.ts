@@ -343,7 +343,6 @@ describe("browser recording", () => {
     expect(stopTrack).toHaveBeenCalledOnce();
   });
 
-  // Chromium's avc1 muxing drops updated SPS/PPS when the capture is resized, so avc1 never wins.
   it.each([
     ["video/mp4;codecs=avc3", ["video/mp4;codecs=avc3"]],
     ["video/webm;codecs=vp9", []],
