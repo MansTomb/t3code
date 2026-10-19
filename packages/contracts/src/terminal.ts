@@ -2,11 +2,6 @@ import * as Schema from "effect/Schema";
 import { TrimmedNonEmptyString } from "./baseSchemas.ts";
 import { ProviderInstanceId } from "./providerInstance.ts";
 
-/**
- * Client-side id for the first shell opened on a thread. Ids are uniformly
- * `term-N`; there's no "default" intrinsic. Kept as a named constant so callers
- * that want "the primary shell" don't hardcode `"term-1"`.
- */
 export const DEFAULT_TERMINAL_ID = "term-1";
 
 const TrimmedNonEmptyStringSchema = TrimmedNonEmptyString;
@@ -60,6 +55,9 @@ export const TerminalAttachInput = Schema.Struct({
 });
 export type TerminalAttachInput = typeof TerminalAttachInput.Type;
 
+export const TerminalObserveInput = TerminalSessionInput;
+export type TerminalObserveInput = Schema.Codec.Encoded<typeof TerminalObserveInput>;
+
 export const TerminalWriteInput = Schema.Struct({
   ...TerminalSessionInput.fields,
   data: Schema.String.check(Schema.isNonEmpty()).check(Schema.isMaxLength(65_536)),
@@ -107,7 +105,6 @@ export const TerminalSessionSnapshot = Schema.Struct({
   history: Schema.String,
   exitCode: Schema.NullOr(Schema.Int),
   exitSignal: Schema.NullOr(Schema.Int),
-  /** Server-computed display title (idle shell vs subprocess command). */
   label: Schema.String.check(Schema.isMaxLength(128)),
   updatedAt: Schema.String,
   sequence: Schema.optional(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))),
@@ -124,7 +121,6 @@ export const TerminalSummary = Schema.Struct({
   exitCode: Schema.NullOr(Schema.Int),
   exitSignal: Schema.NullOr(Schema.Int),
   hasRunningSubprocess: Schema.Boolean,
-  /** Server-computed display title (idle shell vs subprocess command). */
   label: Schema.String.check(Schema.isMaxLength(128)),
   updatedAt: Schema.String,
 });
@@ -236,7 +232,7 @@ export const TerminalAttachStreamEvent = Schema.Union([
 ]);
 export type TerminalAttachStreamEvent = typeof TerminalAttachStreamEvent.Type;
 
-export class TerminalCwdNotFoundError extends Schema.TaggedErrorClass<TerminalCwdNotFoundError>()(
+export class TerminalCwdNotFoundError extends Schema.TaggedError<TerminalCwdNotFoundError>()(
   "TerminalCwdNotFoundError",
   {
     cwd: Schema.String,
@@ -247,7 +243,7 @@ export class TerminalCwdNotFoundError extends Schema.TaggedErrorClass<TerminalCw
   }
 }
 
-export class TerminalCwdNotDirectoryError extends Schema.TaggedErrorClass<TerminalCwdNotDirectoryError>()(
+export class TerminalCwdNotDirectoryError extends Schema.TaggedError<TerminalCwdNotDirectoryError>()(
   "TerminalCwdNotDirectoryError",
   {
     cwd: Schema.String,
@@ -258,7 +254,7 @@ export class TerminalCwdNotDirectoryError extends Schema.TaggedErrorClass<Termin
   }
 }
 
-export class TerminalCwdStatError extends Schema.TaggedErrorClass<TerminalCwdStatError>()(
+export class TerminalCwdStatError extends Schema.TaggedError<TerminalCwdStatError>()(
   "TerminalCwdStatError",
   {
     cwd: Schema.String,
@@ -277,7 +273,7 @@ export const TerminalCwdError = Schema.Union([
 ]);
 export type TerminalCwdError = typeof TerminalCwdError.Type;
 
-export class TerminalHistoryError extends Schema.TaggedErrorClass<TerminalHistoryError>()(
+export class TerminalHistoryError extends Schema.TaggedError<TerminalHistoryError>()(
   "TerminalHistoryError",
   {
     operation: Schema.Literals(["read", "truncate", "migrate"]),
@@ -291,7 +287,7 @@ export class TerminalHistoryError extends Schema.TaggedErrorClass<TerminalHistor
   }
 }
 
-export class TerminalSessionLookupError extends Schema.TaggedErrorClass<TerminalSessionLookupError>()(
+export class TerminalSessionLookupError extends Schema.TaggedError<TerminalSessionLookupError>()(
   "TerminalSessionLookupError",
   {
     threadId: Schema.String,
@@ -303,7 +299,7 @@ export class TerminalSessionLookupError extends Schema.TaggedErrorClass<Terminal
   }
 }
 
-export class TerminalProviderInstanceNotFoundError extends Schema.TaggedErrorClass<TerminalProviderInstanceNotFoundError>()(
+export class TerminalProviderInstanceNotFoundError extends Schema.TaggedError<TerminalProviderInstanceNotFoundError>()(
   "TerminalProviderInstanceNotFoundError",
   {
     providerInstanceId: ProviderInstanceId,
@@ -314,7 +310,7 @@ export class TerminalProviderInstanceNotFoundError extends Schema.TaggedErrorCla
   }
 }
 
-export class TerminalProviderEnvironmentError extends Schema.TaggedErrorClass<TerminalProviderEnvironmentError>()(
+export class TerminalProviderEnvironmentError extends Schema.TaggedError<TerminalProviderEnvironmentError>()(
   "TerminalProviderEnvironmentError",
   {
     providerInstanceId: ProviderInstanceId,
@@ -326,7 +322,7 @@ export class TerminalProviderEnvironmentError extends Schema.TaggedErrorClass<Te
   }
 }
 
-export class TerminalNotRunningError extends Schema.TaggedErrorClass<TerminalNotRunningError>()(
+export class TerminalNotRunningError extends Schema.TaggedError<TerminalNotRunningError>()(
   "TerminalNotRunningError",
   {
     threadId: Schema.String,
@@ -338,7 +334,7 @@ export class TerminalNotRunningError extends Schema.TaggedErrorClass<TerminalNot
   }
 }
 
-export class TerminalWriteError extends Schema.TaggedErrorClass<TerminalWriteError>()(
+export class TerminalWriteError extends Schema.TaggedError<TerminalWriteError>()(
   "TerminalWriteError",
   {
     threadId: Schema.String,
@@ -352,7 +348,7 @@ export class TerminalWriteError extends Schema.TaggedErrorClass<TerminalWriteErr
   }
 }
 
-export class TerminalResizeError extends Schema.TaggedErrorClass<TerminalResizeError>()(
+export class TerminalResizeError extends Schema.TaggedError<TerminalResizeError>()(
   "TerminalResizeError",
   {
     threadId: Schema.String,
