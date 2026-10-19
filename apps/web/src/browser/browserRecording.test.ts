@@ -343,52 +343,36 @@ describe("browser recording", () => {
     expect(stopTrack).toHaveBeenCalledOnce();
   });
 
+  // Chromium's avc1 muxing drops updated SPS/PPS when the capture is resized, so avc1 never wins.
   it.each([
-    ["video/mp4;codecs=avc3", "video/mp4;codecs=avc3"],
-    ["video/mp4;codecs=avc3.640028", "video/mp4;codecs=avc3.640028"],
-    ["video/mp4;codecs=avc3.42e01e", "video/mp4;codecs=avc3.42e01e"],
-    ["video/mp4;codecs=avc1", "video/webm;codecs=vp9"],
+    ["video/mp4;codecs=avc3", ["video/mp4;codecs=avc3"]],
+    ["video/webm;codecs=vp9", []],
   ])(
-    "selects a resize-capable recording format when %s is available",
-    async (supported, expected) => {
+    "records %s over avc1 and saves the recorder's actual format",
+    async (expected, extraTypes) => {
       FakeMediaRecorder.supportedTypes = new Set([
         "video/mp4;codecs=avc1",
-        "video/mp4;codecs=avc1.640028",
         "video/mp4;codecs=avc1.42e01e",
         "video/webm;codecs=vp9",
-        supported,
+        "video/webm;codecs=av1",
+        ...extraTypes,
       ]);
+      FakeMediaRecorder.outputMimeType = "video/webm;codecs=av01";
 
       await startBrowserRecording("recording-tab");
       await stopBrowserRecording("recording-tab");
 
-      expect(FakeMediaRecorder.instances[0]?.options?.mimeType).toBe(expected);
+      expect(FakeMediaRecorder.instances[0]?.options).toEqual({
+        mimeType: expected,
+        videoBitsPerSecond: 3_110_400,
+      });
+      expect(save).toHaveBeenCalledWith(
+        "recording-tab",
+        "video/webm;codecs=av01",
+        expect.any(Uint8Array),
+      );
     },
   );
-
-  it("saves the recorder's actual format", async () => {
-    FakeMediaRecorder.supportedTypes = new Set([
-      "video/mp4;codecs=avc1",
-      "video/mp4;codecs=avc1.42e01e",
-      "video/webm;codecs=vp9",
-      "video/webm;codecs=av1",
-    ]);
-    FakeMediaRecorder.supportedTypes.add("video/mp4;codecs=avc3");
-    FakeMediaRecorder.outputMimeType = "video/webm;codecs=av01";
-
-    await startBrowserRecording("recording-tab");
-    await stopBrowserRecording("recording-tab");
-
-    expect(FakeMediaRecorder.instances[0]?.options).toEqual({
-      mimeType: "video/mp4;codecs=avc3",
-      videoBitsPerSecond: 3_110_400,
-    });
-    expect(save).toHaveBeenCalledWith(
-      "recording-tab",
-      "video/webm;codecs=av01",
-      expect.any(Uint8Array),
-    );
-  });
 
   it("lets the browser select the format when no preferred encoding is supported", async () => {
     FakeMediaRecorder.supportedTypes = new Set();
